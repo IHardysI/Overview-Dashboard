@@ -157,7 +157,7 @@ export default function Dashboard() {
                 {!conversations && !loadingConversations && (
                   <div className="text-center py-8 text-muted-foreground flex-grow flex flex-col justify-center">
                     <CalendarIcon className="mx-auto h-12 w-12 mb-4 opacity-50" />
-                    <p className="text-sm">Выберите диапазон дат и нажмите "Загрузить данные" для просмотра статистики разговоров</p>
+                    <p className="text-sm">Выберите диапазон дат и нажмите &quot;Загрузить данные&quot; для просмотра статистики разговоров</p>
                   </div>
                 )}
 
