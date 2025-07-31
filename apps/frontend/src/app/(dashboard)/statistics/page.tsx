@@ -130,18 +130,16 @@ export default function Dashboard() {
                       )}
                     </Button>
                   </PopoverTrigger>
-                  <PopoverContent className="w-auto p-0 z-50" align="start" side="bottom" sideOffset={4} avoidCollisions={true} collisionPadding={20}>
-                    <div className="max-h-[300px] overflow-y-auto">
-                      <Calendar
-                        initialFocus
-                        mode="range"
-                        defaultMonth={dateRange?.from}
-                        selected={dateRange}
-                        onSelect={setDateRange}
-                        numberOfMonths={1}
-                        locale={ru}
-                      />
-                    </div>
+                  <PopoverContent className="w-auto p-0" align="start">
+                    <Calendar
+                      initialFocus
+                      mode="range"
+                      defaultMonth={dateRange?.from}
+                      selected={dateRange}
+                      onSelect={setDateRange}
+                      numberOfMonths={2}
+                      locale={ru}
+                    />
                   </PopoverContent>
                 </Popover>
 
