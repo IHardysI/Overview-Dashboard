@@ -43,3 +43,13 @@ deploy-to-dev:
     HOST: dev.reflectai.pro:2376
     FILE: $SERVICE_DIR/docker-compose.dev.yml
   when: manual
+
+deploy-to-prod:
+  extends: .deploy
+  environment:
+    name: production
+  variables:
+    ENV: prod
+    HOST: prod.reflectai.pro:2376
+    FILE: $SERVICE_DIR/docker-compose.yml
+  when: manual

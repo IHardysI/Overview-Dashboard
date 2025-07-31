@@ -1,6 +1,6 @@
 services:
   overview-dashboard:
-    env_file: $ENV_OVERVIEW_DASHBOARD
+    env_file: $OVERVIEW_DASHBOARD_ENV
     image: $DOCKER_IMAGE
     networks:
       - traefik-public
