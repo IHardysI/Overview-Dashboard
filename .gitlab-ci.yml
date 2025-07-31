@@ -9,7 +9,7 @@ variables:
   SERVICE_DIR: "${STACK_DIR}"
   DOCKER_IMAGE: "${CI_REGISTRY}/${STACK}:${SERVICE}-${CI_COMMIT_SHORT_SHA}"
 
-build-image-front:
+build-image:
   stage: build
   image:
     name: gcr.io/kaniko-project/executor:debug
