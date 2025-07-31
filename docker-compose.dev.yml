@@ -1,0 +1,21 @@
+services:
+  overview-dashboard:
+    env_file: $ENV
+    image: $DOCKER_IMAGE
+    networks:
+      - traefik-public
+    deploy:
+      resources:
+        limits:
+          cpus: '0.4'
+          memory: 500MB
+      labels:
+        - traefik.enable=true
+        - traefik.http.routers.overview-dashboard.rule=Host(`overview-dashboard.dev.reflectai.pro`)
+        - traefik.http.routers.overview-dashboard.entrypoints=websecure
+        - traefik.http.routers.overview-dashboard.service=overview-dashboard-svc
+        - traefik.http.services.overview-dashboard-svc.loadbalancer.server.port=3000
+
+networks:
+  traefik-public:
+    external: true
