@@ -48,7 +48,12 @@ const AccountsResponse = t.Object({
 
 const app = new Elysia()
   .use(cors({
-    origin: ["http://localhost:3000", "http://0.0.0.0:3000"],
+    origin: [
+      "http://localhost:3000", 
+      "http://0.0.0.0:3000",
+      "https://overview-dashboard.dev.reflectai.pro",
+      ...(process.env.CORS_ORIGINS?.split(',') || [])
+    ],
     credentials: true,
   }))
   .get("/", () => "Hello Elysia")
