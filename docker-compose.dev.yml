@@ -4,7 +4,6 @@ services:
     environment:
       - NODE_ENV=production
       - NEXT_TELEMETRY_DISABLED=1
-      - NEXT_PUBLIC_BACKEND_URL=/api
     networks:
       - traefik-public
     deploy:

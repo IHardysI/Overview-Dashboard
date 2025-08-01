@@ -22,6 +22,9 @@ RUN pnpm install --no-frozen-lockfile
 # Копирование исходного кода
 COPY . .
 
+# Установка переменной окружения для сборки
+ENV NEXT_PUBLIC_BACKEND_URL=/api
+
 # Сборка frontend
 RUN pnpm --filter frontend build
 
