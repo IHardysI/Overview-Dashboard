@@ -34,7 +34,7 @@ async function proxyRequest(request: NextRequest, path: string[]) {
                 'Content-Type': response.headers.get('Content-Type') || 'application/json',
             },
         })
-    } catch (error) {
+    } catch {
         return NextResponse.json(
             { error: 'Backend connection failed' },
             { status: 502 }
@@ -42,22 +42,27 @@ async function proxyRequest(request: NextRequest, path: string[]) {
     }
 }
 
-export async function GET(request: NextRequest, { params }: { params: { path: string[] } }) {
+export async function GET(request: NextRequest, context: { params: Promise<{ path: string[] }> }) {
+    const params = await context.params
     return proxyRequest(request, params.path)
 }
 
-export async function POST(request: NextRequest, { params }: { params: { path: string[] } }) {
+export async function POST(request: NextRequest, context: { params: Promise<{ path: string[] }> }) {
+    const params = await context.params
     return proxyRequest(request, params.path)
 }
 
-export async function PUT(request: NextRequest, { params }: { params: { path: string[] } }) {
+export async function PUT(request: NextRequest, context: { params: Promise<{ path: string[] }> }) {
+    const params = await context.params
     return proxyRequest(request, params.path)
 }
 
-export async function DELETE(request: NextRequest, { params }: { params: { path: string[] } }) {
+export async function DELETE(request: NextRequest, context: { params: Promise<{ path: string[] }> }) {
+    const params = await context.params
     return proxyRequest(request, params.path)
 }
 
-export async function PATCH(request: NextRequest, { params }: { params: { path: string[] } }) {
+export async function PATCH(request: NextRequest, context: { params: Promise<{ path: string[] }> }) {
+    const params = await context.params
     return proxyRequest(request, params.path)
 }
