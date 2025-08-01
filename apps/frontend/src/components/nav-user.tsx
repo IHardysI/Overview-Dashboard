@@ -2,8 +2,11 @@
 
 import {
   BadgeCheck,
+  Bell,
   ChevronsUpDown,
+  CreditCard,
   LogOut,
+  Sparkles,
 } from "lucide-react"
 
 import {
@@ -14,6 +17,7 @@ import {
 import {
   DropdownMenu,
   DropdownMenuContent,
+  DropdownMenuGroup,
   DropdownMenuItem,
   DropdownMenuLabel,
   DropdownMenuSeparator,

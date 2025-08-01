@@ -25,7 +25,7 @@ export default function ConversationsChart({ data }: ConversationsChartProps) {
             <XAxis dataKey="date" fontSize={12} tickLine={false} axisLine={false} />
             <YAxis fontSize={12} tickLine={false} axisLine={false} tickFormatter={(value) => `${value}`} />
             <Tooltip
-              content={({ active, payload }) => {
+              content={({ active, payload, label }) => {
                 if (active && payload && payload.length) {
                   const data = payload[0].payload
                   return (

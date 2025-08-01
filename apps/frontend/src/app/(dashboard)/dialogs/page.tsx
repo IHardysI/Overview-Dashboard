@@ -1,6 +1,6 @@
-"use client"
+'use client';
 
-import { useState, useEffect } from 'react';
+import { useEffect, useState } from 'react';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import {
@@ -8,19 +8,21 @@ import {
   TableBody,
   TableCell,
   TableHead,
-  TableHeader,
   TableRow,
+  TableHeader,
 } from '@/components/ui/table';
 import { Dialog, DialogContent, DialogTrigger, DialogHeader, DialogTitle } from '@/components/ui/dialog';
-import { MessageSquare, Loader2, User, Bot } from 'lucide-react';
+import { MessageSquare, Loader2, User, Bot, Filter } from 'lucide-react';
 import { createIconWrapper } from '@/lib/icon-wrapper';
 import { getConversations, getConversation } from '@/shared/api/conversations';
 import PaginationUniversal from '@/components/PaginationUniversal';
+import { DropdownMenu, DropdownMenuTrigger, DropdownMenuContent, DropdownMenuItem } from '@/components/ui/dropdown-menu';
 
 const MessageSquareIcon = createIconWrapper(MessageSquare);
 const Loader2Icon = createIconWrapper(Loader2);
 const UserIcon = createIconWrapper(User);
 const BotIcon = createIconWrapper(Bot);
+const FilterIcon = createIconWrapper(Filter);
 
 interface ChatMessage {
   id: string;
@@ -112,25 +114,56 @@ const EnhancedChatDialog = ({ messages, botName, userName }: {
 
 export default function DialogsPage() {
   const [conversations, setConversations] = useState<Conversation[]>([]);
-  const [loadingMessages, setLoadingMessages] = useState<boolean>(false);
-  const [conversationMessages, setConversationMessages] = useState<ChatMessage[]>([]);
-  const [selectedConversation, setSelectedConversation] = useState<Conversation | null>(null);
   const [isLoading, setIsLoading] = useState<boolean>(false);
+  const [isLoadingMore, setIsLoadingMore] = useState<boolean>(false);
   const [error, setError] = useState<string | null>(null);
+  const [selectedConversation, setSelectedConversation] = useState<Conversation | null>(null);
+  const [conversationMessages, setConversationMessages] = useState<ChatMessage[]>([]);
+  const [loadingMessages, setLoadingMessages] = useState<boolean>(false);
+  
+  // Pagination states
   const [currentPage, setCurrentPage] = useState<number>(1);
   const [totalCount, setTotalCount] = useState<number>(0);
   const [navigationMode, setNavigationMode] = useState<'pagination' | 'loadMore'>('pagination');
   const chatsPerPage = 15;
 
-
+  // Filter state
+  const [filterStage, setFilterStage] = useState<string>("");
+  const [isFilterActive, setIsFilterActive] = useState<boolean>(false);
+  const [availableStages, setAvailableStages] = useState<string[]>([]);
+  const [isLoadingStages, setIsLoadingStages] = useState<boolean>(false);
   
   // Calculate total pages based on total count
   const totalPages = Math.ceil(totalCount / chatsPerPage);
+
+  // Fetch available stages for filter dropdown
+  const fetchStages = async () => {
+    try {
+      setIsLoadingStages(true);
+      // For now, we'll use a simple approach - extract stages from existing conversations
+      const uniqueStages = Array.from(new Set(
+        conversations
+          .map(conv => conv.stage)
+          .filter(stage => stage !== null && stage !== undefined)
+      ));
+      setAvailableStages(uniqueStages);
+    } catch (err) {
+      console.error('Error fetching stages:', err);
+    } finally {
+      setIsLoadingStages(false);
+    }
+  };
+
+  // Fetch stages on component mount
+  useEffect(() => {
+    fetchStages();
+  }, [conversations]);
 
   const fetchConversations = async (page: number, mode: 'pagination' | 'loadMore' = 'pagination') => {
     try {
       // Set loading states
       setIsLoading(mode === 'pagination');
+      setIsLoadingMore(mode === 'loadMore');
       
       const offset = (page - 1) * chatsPerPage;
       
@@ -163,6 +196,7 @@ export default function DialogsPage() {
       setError('Failed to load conversations');
     } finally {
       setIsLoading(false);
+      setIsLoadingMore(false);
     }
   };
 
@@ -194,30 +228,37 @@ export default function DialogsPage() {
         content: message.text,
         timestamp: message.created_at,
         isBot: message.is_bot_message, // true = bot message (left), false = user message (right)
-        senderName: senderName
+        senderName
       };
     });
   };
 
   const handleChatClick = async (conversation: Conversation) => {
     try {
-      setLoadingMessages(true);
       setSelectedConversation(conversation);
-      
-      console.log(`Fetching messages for conversation ${conversation.conversation_id}, project: ${conversation.project}`);
+      setLoadingMessages(true);
       
       const response = await getConversation(conversation.conversation_id.toString(), conversation.project);
       
       if (response.data) {
         const data = response.data as ChatResponse;
-        console.log(`Received ${data.messages.length} messages`);
+        const formattedMessages = convertToDialogMessages(data.messages);
         
-        const convertedMessages = convertToDialogMessages(data.messages);
-        setConversationMessages(convertedMessages);
+        // Sort messages chronologically for enhanced chat (oldest first)
+        formattedMessages.sort((a, b) => new Date(a.timestamp).getTime() - new Date(b.timestamp).getTime());
+        
+        setConversationMessages(formattedMessages);
       }
     } catch (err) {
       console.error('Error fetching conversation messages:', err);
-      setError('Failed to load conversation messages');
+      // Fallback to last message if we can't get the full conversation
+      setConversationMessages([{
+        id: '1',
+        content: conversation.last_message,
+        timestamp: conversation.last_created_at,
+        isBot: true,
+        senderName: conversation.bot_alias
+      }]);
     } finally {
       setLoadingMessages(false);
     }
@@ -226,37 +267,75 @@ export default function DialogsPage() {
   const formatDate = (dateString: string) => {
     const date = new Date(dateString);
     return date.toLocaleString('ru-RU', {
-      day: '2-digit',
-      month: '2-digit',
       year: 'numeric',
+      month: '2-digit',
+      day: '2-digit',
       hour: '2-digit',
-      minute: '2-digit'
+      minute: '2-digit',
     });
   };
 
   const getRoleBadgeStyles = (role: string) => {
-    return role === 'manager' 
-      ? 'bg-blue-100 text-blue-800 hover:bg-blue-200' 
-      : 'bg-green-100 text-green-800 hover:bg-green-200';
+    switch (role) {
+      case 'manager':
+        return 'bg-teal-100 text-teal-800 hover:bg-teal-200';
+      case 'seller':
+        return 'bg-pink-100 text-pink-800 hover:bg-pink-200';
+      default:
+        return 'bg-gray-100 text-gray-800 hover:bg-gray-200';
+    }
   };
 
   const getStageBadgeStyles = (stage: string | null | undefined) => {
-    if (!stage) return 'bg-gray-100 text-gray-800 hover:bg-gray-200';
+    if (!stage) return 'bg-gray-100 text-gray-800';
     
-    const stageLower = stage.toLowerCase();
-    if (stageLower.includes('lead') || stageLower.includes('лид')) return 'bg-yellow-100 text-yellow-800 hover:bg-yellow-200';
-    if (stageLower.includes('deal') || stageLower.includes('сделка')) return 'bg-green-100 text-green-800 hover:bg-green-200';
-    if (stageLower.includes('lost') || stageLower.includes('потерян')) return 'bg-red-100 text-red-800 hover:bg-red-200';
-    
-    return 'bg-blue-100 text-blue-800 hover:bg-blue-200';
+    if (stage.includes('отправка')) {
+      return 'bg-blue-100 text-blue-800';
+    } else if (stage.includes('убеждение')) {
+        return 'bg-orange-100 text-orange-800';
+    } else {
+        return 'bg-gray-100 text-gray-800';
+    }
   };
 
   const getFormattedStage = (stage: string | null | undefined): string => {
-    return stage || 'Не указана';
+    if (!stage) return 'Нет стадии';
+    return stage;
   };
 
   const getRoleFromBotAlias = (botAlias: string): 'manager' | 'seller' => {
     return botAlias.includes('Leadbee') ? 'manager' : 'seller';
+  };
+
+  // Reset filter
+  const resetFilter = () => {
+    console.log("Resetting filter");
+    setFilterStage('');
+    setIsFilterActive(false);
+    setCurrentPage(1);
+    setNavigationMode('pagination');
+    // Force refetch
+    fetchConversations(1, 'pagination');
+  };
+
+  // Apply stage filter
+  const applyStageFilter = (stage: string) => {
+    console.log(`Applying stage filter: ${stage}`);
+    setConversations([]);
+    
+    // Check if applying the same filter again
+    if (filterStage === stage) {
+      // Force a refetch with the same filter
+      setCurrentPage(1);
+      setNavigationMode('pagination');
+      fetchConversations(1, 'pagination');
+    } else {
+      // Normal filter change
+      setFilterStage(stage);
+      setIsFilterActive(!!stage);
+      setCurrentPage(1);
+      setNavigationMode('pagination');
+    }
   };
 
   if (isLoading && navigationMode === 'pagination') return (
@@ -349,8 +428,8 @@ export default function DialogsPage() {
                   <TableCell>
                     <Badge
                       variant="secondary"
-                      className={getStageBadgeStyles(conversation.stage)}>
-                      {getFormattedStage(conversation.stage)}
+                          className={getStageBadgeStyles(conversation.stage ?? null)}>
+                          {getFormattedStage(conversation.stage ?? null)}
                     </Badge>
                   </TableCell>
                   <TableCell>
@@ -358,15 +437,9 @@ export default function DialogsPage() {
                       {conversation.project}
                     </span>
                   </TableCell>
-                  <TableCell>
-                    <span className="text-muted-foreground">
-                      {conversation.conversation_id}
-                    </span>
-                  </TableCell>
-                  <TableCell>
-                    <span className="text-muted-foreground">
-                      {formatDate(conversation.last_created_at)}
-                    </span>
+                  <TableCell className="font-mono">{conversation.conversation_id}</TableCell>
+                  <TableCell className="text-muted-foreground">
+                        {formatDate(conversation.last_created_at)}
                   </TableCell>
                 </TableRow>
                   );
@@ -376,16 +449,29 @@ export default function DialogsPage() {
         </div>
       </div>
       
-      {/* Pagination */}
-      <div className="flex-shrink-0 p-4 border-t">
-        <PaginationUniversal
-          currentPage={currentPage}
-          totalPages={totalPages}
-          onPageChange={handlePageChange}
-          onLoadMore={handleLoadMore}
-          showLoadMore={currentPage < totalPages}
-        />
-      </div>
+      {isLoadingMore && (
+        <div className="flex justify-center my-4">
+          <Loader2Icon className="animate-spin h-8 w-8 text-muted-foreground" />
+        </div>
+      )}
+      
+      {totalCount > 0 && (
+        <div className="mt-4 flex-shrink-0">
+          <PaginationUniversal 
+            currentPage={currentPage} 
+            totalPages={totalPages}
+            onPageChange={handlePageChange}
+            onLoadMore={handleLoadMore}
+            showLoadMore={
+              !isLoadingMore && (
+                !filterStage 
+                ? currentPage < totalPages 
+                : conversations.length < totalCount
+              )
+            }
+          />
+        </div>
+      )}
     </div>
   );
 }
