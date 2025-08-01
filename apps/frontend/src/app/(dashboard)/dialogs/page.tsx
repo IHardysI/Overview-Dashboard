@@ -1,6 +1,6 @@
 "use client"
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import {
@@ -65,36 +65,36 @@ const EnhancedChatDialog = ({ messages, botName, userName }: {
   userName: string 
 }) => {
   return (
-    <div className="flex flex-col h-[70vh] relative">
+    <div className="flex flex-col h-full min-h-0 relative">
       {/* Chat header with user info - fixed at top */}
-      <div className="flex justify-between items-center py-3 px-4 border-b sticky top-0 bg-white z-20 shadow-sm">
-        <div className="flex items-center space-x-2">
-          <div className="bg-blue-100 p-1 rounded-full">
-            <UserIcon className="h-5 w-5 text-blue-600" />
+      <div className="flex justify-between items-center py-2 sm:py-3 px-2 sm:px-4 border-b sticky top-0 bg-white z-20 shadow-sm">
+        <div className="flex items-center space-x-1 sm:space-x-2 min-w-0">
+          <div className="bg-blue-100 p-1 rounded-full flex-shrink-0">
+            <UserIcon className="h-4 w-4 sm:h-5 sm:w-5 text-blue-600" />
           </div>
-          <span className="font-medium text-blue-800">{userName || 'Клиент'}</span>
+          <span className="font-medium text-blue-800 text-sm sm:text-base truncate">{userName || 'Клиент'}</span>
         </div>
-        <div className="flex items-center space-x-2">
-          <span className="font-medium text-teal-800">{botName}</span>
-          <div className="bg-teal-100 p-1 rounded-full">
-            <BotIcon className="h-5 w-5 text-teal-600" />
+        <div className="flex items-center space-x-1 sm:space-x-2 min-w-0">
+          <span className="font-medium text-teal-800 text-sm sm:text-base truncate">{botName}</span>
+          <div className="bg-teal-100 p-1 rounded-full flex-shrink-0">
+            <BotIcon className="h-4 w-4 sm:h-5 sm:w-5 text-teal-600" />
           </div>
         </div>
       </div>
 
       {/* Message list - scrollable area */}
-      <div className="flex-1 overflow-y-auto px-4 py-3 space-y-3">
+      <div className="flex-1 overflow-y-auto px-2 sm:px-4 py-2 sm:py-3 space-y-2 sm:space-y-3 min-h-0">
         {messages.map((message) => (
-          <div 
-            key={message.id} 
-            className={`flex ${message.isBot ? 'justify-start' : 'justify-end'}`}
-          >
-            <div className={`max-w-[75%] p-3 rounded-lg shadow-sm ${message.isBot 
-              ? 'bg-gray-100 text-gray-800 border-l-4 border-blue-400 mr-auto' 
-              : 'bg-teal-50 text-teal-800 border-r-4 border-teal-400 ml-auto'}`}
-            >
-              <div className="text-sm whitespace-pre-wrap">{message.content}</div>
-              <div className="text-xs text-gray-500 mt-1 text-right">
+                     <div 
+             key={message.id} 
+             className={`flex ${message.isBot ? 'justify-start' : 'justify-end'}`}
+           >
+             <div className={`max-w-[85%] sm:max-w-[75%] p-2 sm:p-3 rounded-lg shadow-sm ${message.isBot 
+               ? 'bg-gray-100 text-gray-800 border-l-4 border-blue-400 mr-auto' 
+               : 'bg-teal-50 text-teal-800 border-r-4 border-teal-400 ml-auto'}`}
+             >
+               <div className="text-xs sm:text-sm whitespace-pre-wrap break-words overflow-hidden">{message.content}</div>
+               <div className="text-xs text-gray-500 mt-1 text-right">
                 {new Date(message.timestamp).toLocaleString('ru-RU', {
                   hour: '2-digit',
                   minute: '2-digit',
@@ -120,10 +120,33 @@ export default function DialogsPage() {
   const [currentPage, setCurrentPage] = useState<number>(1);
   const [totalCount, setTotalCount] = useState<number>(0);
   const [navigationMode, setNavigationMode] = useState<'pagination' | 'loadMore'>('pagination');
+  const [dialogSize, setDialogSize] = useState({ width: '95vw', maxWidth: '95vw' });
   const chatsPerPage = 15;
 
   // Calculate total pages based on total count
   const totalPages = Math.ceil(totalCount / chatsPerPage);
+
+  // Handle responsive dialog sizing
+  useEffect(() => {
+    const updateDialogSize = () => {
+      const width = window.innerWidth;
+      if (width < 640) {
+        setDialogSize({ width: 'calc(100vw - 1rem)', maxWidth: 'calc(100vw - 1rem)' });
+      } else if (width < 768) {
+        setDialogSize({ width: '90vw', maxWidth: '90vw' });
+      } else if (width < 1024) {
+        setDialogSize({ width: '80vw', maxWidth: '80vw' });
+      } else if (width < 1280) {
+        setDialogSize({ width: '70vw', maxWidth: '70vw' });
+      } else {
+        setDialogSize({ width: '60vw', maxWidth: '60vw' });
+      }
+    };
+
+    updateDialogSize();
+    window.addEventListener('resize', updateDialogSize);
+    return () => window.removeEventListener('resize', updateDialogSize);
+  }, []);
 
   const fetchConversations = async (page: number, mode: 'pagination' | 'loadMore' = 'pagination') => {
     try {
@@ -191,10 +214,10 @@ export default function DialogsPage() {
         id: index.toString(),
         content: message.text,
         timestamp: message.created_at,
-        isBot: message.is_bot_message, // true = bot message (left), false = user message (right)
+        isBot: !message.is_bot_message, // Switched: true = user message (left), false = bot/manager message (right)
         senderName: senderName
       };
-    });
+    }).reverse(); // Reverse to show newest messages at the bottom
   };
 
   const handleChatClick = async (conversation: Conversation) => {
@@ -303,23 +326,33 @@ export default function DialogsPage() {
                           Чат
                         </Button>
                       </DialogTrigger>
-                            <DialogContent className="sm:max-w-[500px] md:max-w-[600px] lg:max-w-[800px] w-full p-4">
-                              <DialogHeader>
-                                <DialogTitle>
-                                  Переписка с {selectedConversation?.username || 'Клиентом'}
-                                </DialogTitle>
-                              </DialogHeader>
-                              {loadingMessages ? (
-                                <div className="flex h-96 items-center justify-center">
-                                  <Loader2Icon className="animate-spin h-8 w-8 text-muted-foreground" />
-                                </div>
-                              ) : (
-                                <EnhancedChatDialog 
-                                  messages={conversationMessages}
-                                  botName={selectedConversation?.bot_alias || 'Бот'}
-                                  userName={selectedConversation?.username || 'Клиент'}
-                                />
-                              )}
+                                                         <DialogContent 
+                               className="!p-2 !sm:p-4 !overflow-hidden !flex !flex-col !gap-0" 
+                               style={{
+                                 width: dialogSize.width,
+                                 maxWidth: dialogSize.maxWidth,
+                                 height: 'calc(100vh - 2rem)',
+                                 maxHeight: 'calc(100vh - 2rem)'
+                               }}
+                             >
+                                                                                            <DialogHeader className="px-0 sm:px-0 flex-shrink-0">
+                                 <DialogTitle className="text-sm sm:text-base">
+                                   Переписка с {selectedConversation?.username || 'Клиентом'}
+                                 </DialogTitle>
+                               </DialogHeader>
+                               <div className="flex-1 min-h-0">
+                                 {loadingMessages ? (
+                                   <div className="flex h-full items-center justify-center">
+                                     <Loader2Icon className="animate-spin h-6 w-6 sm:h-8 sm:w-8 text-muted-foreground" />
+                                   </div>
+                                 ) : (
+                                   <EnhancedChatDialog 
+                                    messages={conversationMessages}
+                                    botName={selectedConversation?.bot_alias || 'Бот'}
+                                    userName={selectedConversation?.username || 'Клиент'}
+                                  />
+                                )}
+                               </div>
                         </DialogContent>
                     </Dialog>
                   </TableCell>
