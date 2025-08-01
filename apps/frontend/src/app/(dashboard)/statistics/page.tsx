@@ -11,7 +11,7 @@ import { ru } from "date-fns/locale"
 import type { DateRange } from "react-day-picker"
 import ConversationsChart from "@/components/ConversatiosChart"
 import AccountsTable from "@/components/AccountsTable"
-import { getConversationsByDate } from "@/shared/api/conversations"
+import { getConversationsByDate, getAllTimeConversations } from "@/shared/api/conversations"
 import { getAccounts } from "@/shared/api/accounts"
 
 interface ConversationsByDate {
@@ -40,10 +40,12 @@ export default function Dashboard() {
   const [accounts, setAccounts] = useState<AccountsResponse | null>(null)
   const [loadingConversations, setLoadingConversations] = useState(false)
   const [loadingAccounts, setLoadingAccounts] = useState(false)
+  const [showingAllTime, setShowingAllTime] = useState(false)
 
   const fetchConversations = async () => {
     if (!dateRange?.from || !dateRange?.to) return
 
+    setShowingAllTime(false)
     setLoadingConversations(true)
     try {
       const startDate = format(dateRange.from, "yyyy-MM-dd")
@@ -59,6 +61,26 @@ export default function Dashboard() {
       }
     } catch (error) {
       console.error("Error fetching conversations:", error)
+      setConversations({})
+    } finally {
+      setLoadingConversations(false)
+    }
+  }
+
+  const fetchAllTimeConversations = async () => {
+    setShowingAllTime(true)
+    setLoadingConversations(true)
+    try {
+      const response = await getAllTimeConversations()
+      
+      if (response.data) {
+        setConversations(response.data)
+      } else {
+        console.error("Error fetching all time conversations:", response.error)
+        setConversations({})
+      }
+    } catch (error) {
+      console.error("Error fetching all time conversations:", error)
       setConversations({})
     } finally {
       setLoadingConversations(false)
@@ -107,8 +129,16 @@ export default function Dashboard() {
           {/* Left Column - Conversations by Date */}
           <Card className="flex flex-col min-h-0 relative overflow-visible">
             <CardHeader className="flex-shrink-0">
-              <CardTitle className="text-lg lg:text-xl">Разговоры по датам</CardTitle>
-              <CardDescription className="text-sm">Выберите диапазон дат для просмотра статистики разговоров</CardDescription>
+              <CardTitle className="text-lg lg:text-xl">
+                Разговоры по датам
+                {showingAllTime && <span className="ml-2 text-sm font-normal text-muted-foreground">(За все время)</span>}
+              </CardTitle>
+              <CardDescription className="text-sm">
+                {showingAllTime 
+                  ? "Показана статистика за все время" 
+                  : "Выберите диапазон дат для просмотра статистики разговоров"
+                }
+              </CardDescription>
             </CardHeader>
             <CardContent className="flex flex-col flex-grow min-h-0 space-y-4 p-4 lg:p-6">
               <div className="flex flex-col gap-4 flex-shrink-0">
@@ -143,21 +173,32 @@ export default function Dashboard() {
                   </PopoverContent>
                 </Popover>
 
-                <Button
-                  onClick={fetchConversations}
-                  disabled={!dateRange?.from || !dateRange?.to || loadingConversations}
-                  className="text-sm"
-                >
-                  {loadingConversations && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-                  Загрузить данные
-                </Button>
+                <div className="flex gap-2">
+                  <Button
+                    onClick={fetchConversations}
+                    disabled={!dateRange?.from || !dateRange?.to || loadingConversations}
+                    className="text-sm flex-1"
+                  >
+                    {loadingConversations && !showingAllTime && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+                    Загрузить данные
+                  </Button>
+                  <Button
+                    onClick={fetchAllTimeConversations}
+                    disabled={loadingConversations}
+                    variant="outline"
+                    className="text-sm flex-1"
+                  >
+                    {loadingConversations && showingAllTime && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+                    За все время
+                  </Button>
+                </div>
               </div>
 
               <div className="flex-grow flex flex-col min-h-0 overflow-hidden">
                 {!conversations && !loadingConversations && (
                   <div className="text-center py-8 text-muted-foreground flex-grow flex flex-col justify-center">
                     <CalendarIcon className="mx-auto h-12 w-12 mb-4 opacity-50" />
-                    <p className="text-sm">Выберите диапазон дат и нажмите &quot;Загрузить данные&quot; для просмотра статистики разговоров</p>
+                    <p className="text-sm">Выберите диапазон дат и нажмите &quot;Загрузить данные&quot; или нажмите &quot;За все время&quot; для просмотра всей статистики</p>
                   </div>
                 )}
 

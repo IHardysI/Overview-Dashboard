@@ -89,15 +89,24 @@ const app = new Elysia()
     response: ChatResponse
   })
   .get("/conversations/bydate", async ({ query }) => {
-    const start_date = query.start_date
-    const end_date = query.end_date
-    const response = await fetch(`https://python-platforma-max-personal.reflectai.pro/new_chats?start_date=${start_date}&end_date=${end_date}`)
+    let start_date = query.start_date
+    let end_date = query.end_date
+    
+    if (!start_date || !end_date) {
+      const now = new Date()
+      const oneYearAgo = new Date(now.getFullYear() - 1, 0, 1)
+      start_date = oneYearAgo.toISOString().split('T')[0]
+      end_date = now.toISOString().split('T')[0]
+    }
+    
+    const url = `https://python-platforma-max-personal.reflectai.pro/new_chats?start_date=${start_date}&end_date=${end_date}`
+    const response = await fetch(url)
     const data = await response.json()
     return data
   }, {
     query: t.Object({
-      start_date: t.String(),
-      end_date: t.String()
+      start_date: t.Optional(t.String()),
+      end_date: t.Optional(t.String())
     }),
     response: ConversationsByDateResponse
   })

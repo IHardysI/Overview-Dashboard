@@ -29,3 +29,10 @@ export const getConversationsByDate = async (start_date: string, end_date: strin
     return response
 }
 
+export const getAllTimeConversations = async () => {
+    const response = await eden.conversations.bydate.get({
+        query: {}
+    })
+    return response
+}
+
