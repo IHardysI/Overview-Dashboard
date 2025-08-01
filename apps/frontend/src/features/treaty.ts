@@ -13,6 +13,7 @@ const getBackendUrl = () => {
   return envUrl
 }
 
-// @ts-expect-error - Elysia version conflict between frontend/backend
+// eslint-disable-next-line @typescript-eslint/ban-ts-comment
+// @ts-ignore - Elysia version conflict between frontend/backend
 export const eden = treaty<App>(getBackendUrl())
 
